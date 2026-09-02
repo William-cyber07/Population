@@ -487,40 +487,37 @@ app.delete('/api/lookups/:tableName/:id', async (req, res) => {
     }
 });
 
-// --- ADMIN CREATE FIELD USER ROUTE ---
 app.post('/api/admin/users', async (req, res) => {
     try {
         const { full_name, assigned_district_id } = req.body;
 
-        // 1. Generate the credentials
-        const { username, password } = authService.generateUserCredentials();
+        // 1. Generate a unique username
+        const randomNum = Math.floor(10000 + Math.random() * 90000);
+        const username = `user_${randomNum}`;
 
-        // 2. Hash the password (We need bcrypt for this)
-        const bcrypt = require('bcryptjs');
-        const saltRounds = 10;
-        const hashedPassword = await bcrypt.hash(password, saltRounds);
+        // 2. Use a FIXED PERMANENT PASSWORD
+        const password = 'password123';
 
-        // 3. Insert the user into the database
+        // 3. Insert directly as PLAIN TEXT (No hashing!)
         const insertQuery = `
             INSERT INTO users (username, password_hash, role, full_name, assigned_district_id)
             VALUES (?, ?, 'field_user', ?, ?)
         `;
-        await pool.query(insertQuery, [username, hashedPassword, full_name, assigned_district_id]);
+        await pool.query(insertQuery, [username, password, full_name, assigned_district_id]);
 
-        // 4. Return the generated credentials to the Admin
+        // 4. Return the credentials
         res.status(201).json({
-       message: 'Field user created successfully',
-    username: username,
-    password: password,       
-    full_name: full_name
-});
+            message: 'Field user created successfully',
+            username: username,
+            password: password,
+            full_name: full_name
+        });
 
     } catch (error) {
         console.error('Error creating field user:', error);
         res.status(500).json({ error: 'Failed to create field user' });
     }
 });
-
 // Import and use the auth routes
 const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);

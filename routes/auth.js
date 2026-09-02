@@ -9,20 +9,21 @@ router.post('/login', async (req, res) => {
         const { username, password } = req.body;
         const { user, token } = await authService.loginUser(username, password);
 
-        // Set the token as an HttpOnly cookie
         res.cookie('token', token, {
-            httpOnly: true,      // Prevents client-side JavaScript from reading the cookie
-            secure: false,       // Set to true in production (when using HTTPS)
+            httpOnly: true,
+            secure: false,
             sameSite: 'strict',
-            maxAge: 24 * 60 * 60 * 1000 // 24 hours
+            maxAge: 24 * 60 * 60 * 1000
         });
 
         res.json({ message: 'Login successful', user });
     } catch (error) {
-        res.status(401).json({ error: error.message });
+        console.error('Login error:', error.message);
+        res.status(401).json({ error: 'Invalid username or password' });
     }
 });
 
+// POST /api/auth/logout
 router.post('/logout', (req, res) => {
     res.clearCookie('token');
     res.json({ message: 'Logged out successfully' });
