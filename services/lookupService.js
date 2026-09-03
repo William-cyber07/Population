@@ -29,23 +29,24 @@ async function getSingleLookupRecord(tableName, id) {
     });
 }
 
-async function createLookupRecord(tableName, data) {
-    return withTransaction(async (connection) => {
-        // Convert the incoming data to match the actual database columns
-        let formattedData = data;
-        
-        if (tableName === 'region') {
-            formattedData = { region_name: data.region_name || data.label };
-        } else if (tableName === 'district') {
-            formattedData = { district_name: data.district_name || data.label };
-        }
-        // For all other tables, keep it as 'label'
-        else {
-            formattedData = { label: data.label };
-        }
+async function createLookup(connection, tableName, data) {
+    // 1. Manually extract keys and values
+    const keys = Object.keys(data);
+    const values = Object.values(data);
+    
+    // 2. Generate the placeholders (?, ?, ?)
+    const placeholders = keys.map(() => '?').join(', ');
+    
+    // 3. Build the query: INSERT INTO table (key1, key2) VALUES (?, ?)
+    const query = `INSERT INTO ?? (${keys.map(() => '??').join(', ')}) VALUES (${placeholders})`;
+    
+    // 4. Build the parameter array: [tableName, key1, key2, value1, value2]
+    const params = [tableName];
+    keys.forEach(key => params.push(key));
+    values.forEach(val => params.push(val));
 
-        return await repo.createLookup(connection, tableName, formattedData);
-    });
+    const [result] = await connection.query(query, params);
+    return result;
 }
 
 async function updateLookupRecord(tableName, id, data) {
