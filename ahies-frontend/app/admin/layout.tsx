@@ -33,6 +33,12 @@ export default function AdminLayout({
                     >
                      👤 Create Field User
                     </Link>
+                    <Link 
+                    href="/admin/citizens" 
+                    className="block px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-md transition-colors"
+                  >
+                👥 View All Citizens
+                </Link>      
                 </nav>
             </div>
 

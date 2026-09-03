@@ -12,6 +12,7 @@ async function loginUser(username, password) {
     if (!user) {
         throw new Error('Invalid username or password');
     }
+    console.log("User found in database: ", user);
 
 console.log("Found user: ", user);
     // 2. Check the typed password against the stored bcrypt hash
