@@ -495,17 +495,25 @@ app.post('/api/admin/users', async (req, res) => {
         const randomNum = Math.floor(10000 + Math.random() * 90000);
         const username = `user_${randomNum}`;
 
-        // 2. Use a FIXED PERMANENT PASSWORD
-        const password = 'password123';
+        // 2. Generate a random password for this user
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let password = '';
+        for (let i = 0; i < 8; i++) {
+            password += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
 
-        // 3. Insert directly as PLAIN TEXT (No hashing!)
+        // 3. Hash it before storing
+        const bcrypt = require('bcryptjs');
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // 4. Insert the hash, not the plain password
         const insertQuery = `
             INSERT INTO users (username, password_hash, role, full_name, assigned_district_id)
             VALUES (?, ?, 'field_user', ?, ?)
         `;
-        await pool.query(insertQuery, [username, password, full_name, assigned_district_id]);
+        await pool.query(insertQuery, [username, hashedPassword, full_name, assigned_district_id]);
 
-        // 4. Return the credentials
+        // 5. Return the plain password to the admin — the only time it's ever shown
         res.status(201).json({
             message: 'Field user created successfully',
             username: username,
