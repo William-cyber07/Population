@@ -1,8 +1,6 @@
 const pool = require('../db/pool');
 
-/**
- * Inserts a record into the 'education' table.
- */
+
 async function createEducation(connection, data) {
     const query = `
         INSERT INTO education (
