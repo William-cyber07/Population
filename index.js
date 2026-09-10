@@ -2,7 +2,7 @@ const pool = require('./db/pool');
 const express = require('express');
 
 const personRepo = require('./repositories/personrepository');
-const educationService = require('./services/educationservice');
+const educationService = require('./services/educationService');
 const healthService =require('./services/healthservice');
 const employmentService = require('./services/employmentservice');
 const personService = require('./services/personService');
