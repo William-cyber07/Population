@@ -30,7 +30,7 @@ async function createPersonAndRound(personData) {
     personData.age_months || 0, 
     personData.pop_weight || 100.0,
     personData.status || 'draft',     // 8th parameter
-    personData.created_by || 2        // 9th parameter (defaults to Field User ID 2)
+    personData.created_by      // 9th parameter (defaults to Field User ID 2)
 ];
 
         const [roundResult] = await pool.query(roundQuery, roundValues);

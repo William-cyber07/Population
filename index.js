@@ -9,6 +9,21 @@ const personService = require('./services/personService');
 const lookupService = require('./services/lookupService');
 const authService = require('./services/authService');
 
+function authenticateToken(req, res, next) {
+    const token = req.cookies.token;
+    if (!token) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const decoded = authService.verifyToken(token);
+    if (!decoded) {
+        return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+
+    req.user = decoded;
+    next();
+}
+
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 require('dotenv').config();
@@ -44,11 +59,12 @@ app.get('/api/persons-round/:id', async (req, res) => {
     }
 });
 
-app.post('/api/persons', async (req, res) => {
+app.post('/api/persons', authenticateToken, async (req, res) => {
     try {
-        // Call the repository to create the person
-        // We will pass 'status' and 'created_by' inside req.body
-        const result = await personRepo.createPersonAndRound(req.body);
+        const result = await personRepo.createPersonAndRound({
+            ...req.body,
+            created_by: req.user.user_id
+        });
         
         res.status(201).json({
             message: 'Person created successfully',
@@ -59,12 +75,10 @@ app.post('/api/persons', async (req, res) => {
         console.dir(error, { depth: null });
         console.error('========================================');
         
-        // Send the actual MySQL error message to the frontend if available
         const errorMessage = error.sqlMessage || 'Failed to create person';
         res.status(500).json({ error: errorMessage });
     }
 });
-
  
 app.post('/api/education', async (req, res) => {
     try {
