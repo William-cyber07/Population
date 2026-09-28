@@ -59,12 +59,10 @@ app.get('/api/persons-round/:id', async (req, res) => {
     }
 });
 
-app.post('/api/persons', authenticateToken, async (req, res) => {
+app.post('/api/persons', async (req, res) => {
     try {
-        const result = await personRepo.createPersonAndRound({
-            ...req.body,
-            created_by: req.user.user_id
-        });
+        // Pass the ENTIRE request body to the repository
+        const result = await personRepo.createPersonAndRound(req.body);
         
         res.status(201).json({
             message: 'Person created successfully',

@@ -3,48 +3,77 @@ const withTransaction = require('../db/transaction');
 
 
 async function createPersonAndRound(personData) {
+    // We use the transaction helper to run this inside a transaction
+    return withTransaction(async (connection) => {
+        
+        // 1. AUTO-GENERATE THE PERSONID
+        let newPersonId = personData.personid;
+        
+        if (!newPersonId) {
+            // Find the highest personid currently in the database
+            const [rows] = await connection.query(
+                'SELECT personid FROM person ORDER BY personid DESC LIMIT 1'
+            );
+            
+            if (rows.length === 0) {
+                // If there are no people yet, start at PID001
+                newPersonId = 'PID001';
+            } else {
+                // Extract the number part (e.g. "PID013" -> "013" -> 13)
+                const lastId = rows[0].personid;
+                const lastNum = parseInt(lastId.replace('PID', '')) || 0;
+                const nextNum = lastNum + 1;
+                // Format with leading zeros: 14 -> "PID014"
+                newPersonId = 'PID' + nextNum.toString().padStart(3, '0');
+            }
+        }
 
-    try {
+        // 2. Insert into the "person" table
         const personQuery = `
             INSERT INTO person (personid)
             VALUES (?)
         `;
-        const [personResult] = await pool.query(personQuery, [personData.personid]);
-        
-        const newPersonId = personResult.insertId;
+        const [personResult] = await connection.query(personQuery, [newPersonId]);
+        const newPersonIdPk = personResult.insertId;
 
+        // 3. Insert into the "person_round" table
         const roundQuery = `
-    INSERT INTO person_round (
-        person_id, household_round_id, sex, relationship_id, age_years, age_months,
-        pop_weight, status, created_by
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO person_round (
+                person_id, 
+                household_round_id, 
+                sex, 
+                relationship_id, 
+                age_years,
+                age_months,
+                pop_weight,
+                status,
+                created_by
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
-
+        
         const roundValues = [
-    newPersonId, 
-    personData.household_round_id, 
-    personData.sex, 
-    personData.relationship_id, 
-    personData.age_years, 
-    personData.age_months || 0, 
-    personData.pop_weight || 100.0,
-    personData.status || 'draft',     // 8th parameter
-    personData.created_by      // 9th parameter (defaults to Field User ID 2)
-];
+            newPersonIdPk,
+            personData.household_round_id,
+            personData.sex,
+            personData.relationship_id,
+            personData.age_years,
+            personData.age_months || 0,
+            personData.pop_weight || 100.0,
+            'draft',
+            personData.created_by || 12 // Use the actual logged-in user ID
+        ];
 
-        const [roundResult] = await pool.query(roundQuery, roundValues);
+        const [roundResult] = await connection.query(roundQuery, roundValues);
         const newPersonRoundId = roundResult.insertId;
 
-        // Return the new IDs to the caller
+        // Return the generated IDs
         return {
-            person_id: newPersonId,
-            person_round_id: newPersonRoundId
+            person_id: newPersonIdPk,
+            person_round_id: newPersonRoundId,
+            personid: newPersonId // Return the generated "PIDxxx"
         };
-
-    } catch (error) {
-        throw error;
-    }
+    });
 }
 
 async function getPersonRoundById(personRoundId) {

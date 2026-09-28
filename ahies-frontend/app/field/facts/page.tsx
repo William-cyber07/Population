@@ -13,10 +13,12 @@ export default function EnterFactsPage() {
     const [householdId, setHouseholdId] = useState('');
     const [educationLevels, setEducationLevels] = useState([]);
     const [regions, setRegions] = useState([]);
+    const [maritalStatuses, setMaritalStatuses] = useState([]);
 
     useEffect(() => {
         fetchEducationLevels();
         fetchRegions();
+        fetchMaritalStatuses();
     }, []);
 
     const fetchEducationLevels = async () => {
@@ -39,22 +41,27 @@ export default function EnterFactsPage() {
         } catch (error) { console.error('Failed to load regions'); }
     };
 
-    // 1. Basic Person Info
+    const fetchMaritalStatuses = async () => {
+        try {
+            const response = await fetch(`${API_URL}/api/lookups/marital_status`, { credentials: 'include' });
+            if (response.ok) {
+                const data = await response.json();
+                setMaritalStatuses(data);
+            }
+        } catch (error) { console.error('Failed to load marital statuses'); }
+    };
+
+    // 1. Basic Person Info (REMOVED personid)
     const [formData, setFormData] = useState({
-        personid: '', sex: 'M', relationship_id: 1, age_years: '', age_months: 0, pop_weight: 100.0,
+        sex: 'M', relationship_id: 1, age_years: '', age_months: 0, pop_weight: 100.0,
         date_of_birth: '', marital_status_id: '', religion: '', nationality: 'Ghanaian by birth',
-        ethnicity_major: '', ethnicity_detail: '', created_by: 2
+        ethnicity_major: '', ethnicity_detail: '', created_by: 12 // <--- MAKE SURE THIS IS YOUR ACTUAL FIELDUSER ID
     });
 
-    // 2. Migration State (NEW)
+    // 2. Migration State
     const [migration, setMigration] = useState({
-        born_in_this_town: false,
-        born_region_id: '',
-        resident_since_birth: false,
-        years_in_town: '',
-        prior_region_id: '',
-        years_at_prior_residence: '',
-        reason_for_moving: ''
+        born_in_this_town: false, born_region_id: '', resident_since_birth: false, years_in_town: '',
+        prior_region_id: '', years_at_prior_residence: '', reason_for_moving: ''
     });
 
     // 3. Education State
@@ -68,11 +75,22 @@ export default function EnterFactsPage() {
         fee_consultation: 0, fee_drugs_treatment: 0, ever_registered_insurance: false, currently_covered: false
     });
 
-    // 5. Disability State (NEW)
+    // 5. Disability State
     const [disability, setDisability] = useState({
         difficulty_seeing: 'No difficulty', dificulty_hearing: 'No difficulty',
         difficulty_walking: 'No difficulty', difficulty_remembering: 'No difficulty',
         difficulty_selfcare: 'No difficulty', difficulty_communications: 'No difficulty'
+    });
+
+    // 6. Employment State
+    const [employment, setEmployment] = useState({
+        any_activity_past_7d: false,
+        sector: 'Private Informal',
+        job_status: 'Non-agric self-employed without employees',
+        work_location: 'Own land / farm',
+        cash_payment_amount: 0,
+        cash_payment_unit: 'Month',
+        occupation_code_id: ''
     });
 
     const handleChange = (e: any) => {
@@ -99,6 +117,11 @@ export default function EnterFactsPage() {
         setDisability({ ...disability, [e.target.name]: e.target.value });
     };
 
+    const handleEmploymentChange = (e: any) => {
+        const { name, value, type, checked } = e.target;
+        setEmployment({ ...employment, [name]: type === 'checkbox' ? checked : value });
+    };
+
     const handleSubmit = async (e: any) => {
         e.preventDefault();
         setLoading(true);
@@ -109,17 +132,20 @@ export default function EnterFactsPage() {
                 migration: migration,
                 education: education,
                 health: health,
-                disability: disability
+                disability: disability,
+                employment: employment
             };
 
             await createPerson(payload);
             alert('Full profile saved successfully!');
-            // Reset all states...
-            setFormData({ personid: '', sex: 'M', relationship_id: 1, age_years: '', age_months: 0, pop_weight: 100.0, date_of_birth: '', marital_status_id: '', religion: '', nationality: 'Ghanaian by birth', ethnicity_major: '', ethnicity_detail: '', created_by: 2 });
+            
+            // Reset states... (REMOVED personid)
+            setFormData({ sex: 'M', relationship_id: 1, age_years: '', age_months: 0, pop_weight: 100.0, date_of_birth: '', marital_status_id: '', religion: '', nationality: 'Ghanaian by birth', ethnicity_major: '', ethnicity_detail: '', created_by: 12 });
             setMigration({ born_in_this_town: false, born_region_id: '', resident_since_birth: false, years_in_town: '', prior_region_id: '', years_at_prior_residence: '', reason_for_moving: '' });
             setEducation({ ever_attended_school: false, highest_level_id: '', attended_past_3_months: false, still_in_school: false });
             setHealth({ illness_or_injury_2wk: false, consulted_practitioner: false, consulted_whom: '', facility_group: '', fee_consultation: 0, fee_drugs_treatment: 0, ever_registered_insurance: false, currently_covered: false });
             setDisability({ difficulty_seeing: 'No difficulty', dificulty_hearing: 'No difficulty', difficulty_walking: 'No difficulty', difficulty_remembering: 'No difficulty', difficulty_selfcare: 'No difficulty', difficulty_communications: 'No difficulty' });
+            setEmployment({ any_activity_past_7d: false, sector: 'Private Informal', job_status: 'Non-agric self-employed without employees', work_location: 'Own land / farm', cash_payment_amount: 0, cash_payment_unit: 'Month', occupation_code_id: '' });
             setHouseholdId('');
         } catch (error: any) {
             alert(error.message || 'Failed to add person.');
@@ -128,7 +154,7 @@ export default function EnterFactsPage() {
         }
     };
 
-       return (
+    return (
         <div className="p-6">
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-gray-800">Enter Citizen Facts</h1>
@@ -147,10 +173,6 @@ export default function EnterFactsPage() {
                         </div>
                         <div className="grid grid-cols-2 gap-4 mt-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-900">Person ID <span className="text-red-500">*</span></label>
-                                <input type="text" name="personid" required value={formData.personid} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900" />
-                            </div>
-                            <div>
                                 <label className="block text-sm font-medium text-gray-900">Age (Years) <span className="text-red-500">*</span></label>
                                 <input type="number" name="age_years" required value={formData.age_years} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900" />
                             </div>
@@ -163,7 +185,19 @@ export default function EnterFactsPage() {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-900">Marital Status</label>
-                                <input type="number" name="marital_status_id" value={formData.marital_status_id} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900" placeholder="e.g. 1" />
+                                <select 
+                                    name="marital_status_id" 
+                                    value={formData.marital_status_id} 
+                                    onChange={handleChange} 
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900"
+                                >
+                                    <option value="">-- Select Marital Status --</option>
+                                    {maritalStatuses.map((status: any) => (
+                                        <option key={status.status_id} value={status.status_id}>
+                                            {status.label}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -248,10 +282,54 @@ export default function EnterFactsPage() {
                         </div>
                     </div>
 
+                    {/* SECTION 6: EMPLOYMENT */}
+                    <div className="border-b border-gray-200 pb-6">
+                        <h2 className="text-lg font-semibold text-gray-800 mb-4">6. Employment & Labor</h2>
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2">
+                                <input type="checkbox" name="any_activity_past_7d" checked={employment.any_activity_past_7d} onChange={handleEmploymentChange} />
+                                <label className="text-sm font-medium text-gray-900">Worked for pay/profit in the past 7 days?</label>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-900">Sector</label>
+                                    <select name="sector" value={employment.sector} onChange={handleEmploymentChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900">
+                                        <option value="Private Informal">Private Informal</option>
+                                        <option value="Private Formal">Private Formal</option>
+                                        <option value="Public (Government)">Public (Government)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-900">Job Status</label>
+                                    <select name="job_status" value={employment.job_status} onChange={handleEmploymentChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900">
+                                        <option value="Non-agric self-employed without employees">Non-agric self-employed without employees</option>
+                                        <option value="Agric self-employed without employees">Agric self-employed without employees</option>
+                                        <option value="Paid employee">Paid employee</option>
+                                        <option value="Casual worker">Casual worker</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-900">Work Location</label>
+                                    <select name="work_location" value={employment.work_location} onChange={handleEmploymentChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900">
+                                        <option value="Own land / farm">Own land / farm</option>
+                                        <option value="Office">Office</option>
+                                        <option value="Store / shop">Store / shop</option>
+                                        <option value="Street">Street</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-900">Payment Amount</label>
+                                    <input type="number" name="cash_payment_amount" value={employment.cash_payment_amount} onChange={handleEmploymentChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded hover:bg-blue-700 disabled:opacity-50">
                         {loading ? 'Saving...' : 'Save Full Citizen Profile'}
                     </button>
                 </form>
             </div>
         </div>
-    )};
+    );
+}
