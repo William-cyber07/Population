@@ -1,6 +1,6 @@
 // reset-passwords.js
 const mysql = require('mysql2');
-const bcrypt = require('bcryptjs');
+const passwordService = require('./services/passwordService');
 require('dotenv').config();
 
 const pool = mysql.createPool({
@@ -14,11 +14,11 @@ const pool = mysql.createPool({
 async function resetPasswords() {
     try {
         console.log("Resetting admin password...");
-        const adminHash = await bcrypt.hash('admin123', 10);
+        const adminHash = await passwordService.hashPassword('admin123');
         await pool.query('UPDATE users SET password_hash = ? WHERE username = ?', [adminHash, 'admin']);
 
         console.log("Resetting fielduser password...");
-        const userHash = await bcrypt.hash('user123', 10);
+        const userHash = await passwordService.hashPassword('user123');
         await pool.query('UPDATE users SET password_hash = ? WHERE username = ?', [userHash, 'fielduser']);
 
         console.log("✅ Passwords reset successfully!");

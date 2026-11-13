@@ -61,7 +61,7 @@ async function createPersonAndRound(personData) {
             personData.age_months || 0,
             personData.pop_weight || 100.0,
             'draft',
-            personData.created_by || 12 // Use the actual logged-in user ID
+            personData.created_by ?? null // Set from the authenticated token in the route
         ];
 
         const [roundResult] = await connection.query(roundQuery, roundValues);

@@ -497,9 +497,17 @@ CREATE TABLE IF NOT EXISTS users (
     user_id INT PRIMARY KEY AUTO_INCREMENT,
     username VARCHAR(50) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
-    role ENUM('admin', 'field_user') NOT NULL DEFAULT 'field_user',
+    role ENUM('inputer', 'field_user', 'manager', 'admin', 'administrator') NOT NULL DEFAULT 'field_user',
     full_name VARCHAR(100),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    must_change_password TINYINT(1) NOT NULL DEFAULT 0,
+    password_changed_at DATETIME NULL,
+    failed_login_attempts INT NOT NULL DEFAULT 0,
+    locked_until DATETIME NULL,
+    two_factor_enabled TINYINT(1) NOT NULL DEFAULT 0,
+    two_factor_secret VARCHAR(64) NULL,
+    two_factor_pending_secret VARCHAR(64) NULL,
+    backup_codes TEXT NULL
 );
 
 -- 2. Add a default Admin account (password is: admin123)
@@ -574,3 +582,21 @@ UPDATE users SET password_hash = 'admin123' WHERE username = 'admin';
 UPDATE users SET password_hash = '$2a$10$ZyUPT6DnF5s9s8wCpbWXz.kzYh6uDy3p6bY4M3M7K7L8L9M9N1' WHERE username = 'fielduser';
 
 ALTER TABLE education_level MODIFY level_id SMALLINT AUTO_INCREMENT;
+-- P1 security: append-only audit trail (see db/migrations/002_p1_security.sql)
+CREATE TABLE IF NOT EXISTS audit_log (
+    audit_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NULL,
+    action VARCHAR(64) NOT NULL,
+    target_type VARCHAR(64) NULL,
+    target_id VARCHAR(64) NULL,
+    ip_address VARCHAR(45) NULL,
+    user_agent VARCHAR(255) NULL,
+    details TEXT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_audit_user (user_id),
+    INDEX idx_audit_created (created_at),
+    CONSTRAINT fk_audit_user FOREIGN KEY (user_id)
+        REFERENCES users(user_id) ON DELETE SET NULL
+);
+
+CREATE INDEX idx_person_round_created_by ON person_round(created_by);

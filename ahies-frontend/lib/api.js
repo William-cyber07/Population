@@ -1,45 +1,45 @@
 // lib/api.js
 
 // 1. Load the backend URL from our environment variables
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 /**
  * Fetches all persons from the backend.
- * Equivalent to a GET request to our Express API.
+ * Server Components must pass the incoming Cookie header so the backend's
+ * authentication guard can verify the signed JWT.
  */
-export async function getPersons() {
+export async function getPersons(requestHeaders = {}) {
     try {
-        // Use the browser's native 'fetch' function to call our backend
         const response = await fetch(`${API_URL}/api/persons`, {
-    cache: 'no-store' // <--- Forces Next.js to fetch fresh data every time
+            cache: 'no-store', // Forces Next.js to fetch fresh data every time
+            credentials: 'include',
+            headers: requestHeaders,
         });
-        
-        // If the backend returned a 404 or 500, throw a manual error
+
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
-        // Parse the JSON response and return the data
+
         const data = await response.json();
         return data;
     } catch (error) {
         console.error('Error fetching persons from backend:', error);
-        throw error; // Re-throw the error so the UI knows something went wrong
+        throw error;
     }
 }
 
 /**
  * Sends a new person to the backend.
- * Equivalent to a POST request to our Express API.
  */
 export async function createPerson(personData) {
     try {
         const response = await fetch(`${API_URL}/api/persons`, {
-            method: 'POST',                   // We are telling the backend we want to CREATE data
+            method: 'POST',
             headers: {
-                'Content-Type': 'application/json', // Tell the backend we are sending JSON
+                'Content-Type': 'application/json',
             },
-            body: JSON.stringify(personData),       // Convert our JavaScript object to a JSON string
+            body: JSON.stringify(personData),
+            credentials: 'include',
         });
 
         if (!response.ok) {
@@ -54,16 +54,22 @@ export async function createPerson(personData) {
     }
 }
 
-export async function getPersonFullProfile(personRoundId) {
+/**
+ * Fetches the full profile of a person. Server Components must pass the
+ * incoming Cookie header, as above.
+ */
+export async function getPersonFullProfile(personRoundId, requestHeaders = {}) {
     try {
         const response = await fetch(`${API_URL}/api/persons-full/${personRoundId}`, {
-            cache: 'no-store' // Prevent caching so it always fetches fresh data
+            cache: 'no-store',
+            credentials: 'include',
+            headers: requestHeaders,
         });
-        
+
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data = await response.json();
         return data;
     } catch (error) {

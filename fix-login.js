@@ -1,5 +1,5 @@
 const mysql = require('mysql2');
-const bcrypt = require('bcryptjs');
+const passwordService = require('./services/passwordService');
 require('dotenv').config();
 
 const pool = mysql.createPool({
@@ -13,11 +13,11 @@ const pool = mysql.createPool({
 async function fixLogin() {
     try {
         console.log("Hashing new password for admin...");
-        const adminHash = await bcrypt.hash('admin123', 10);
+        const adminHash = await passwordService.hashPassword('admin123');
         await pool.query('UPDATE users SET password_hash = ? WHERE username = ?', [adminHash, 'admin']);
         
         console.log("Creating a new test user 'testuser'...");
-        const testHash = await bcrypt.hash('test123', 10);
+        const testHash = await passwordService.hashPassword('test123');
         await pool.query('INSERT INTO users (username, password_hash, role, full_name) VALUES (?, ?, ?, ?)', ['testuser', testHash, 'field_user', 'Test User']);
         
         console.log("✅ DONE!");

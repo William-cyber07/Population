@@ -1,6 +1,6 @@
 // fix-final-password.js
 const mysql = require('mysql2');
-const bcrypt = require('bcryptjs');
+const passwordService = require('./services/passwordService');
 require('dotenv').config();
 
 const pool = mysql.createPool({
@@ -16,15 +16,15 @@ async function fixLogin() {
         console.log("Re-hashing passwords using bcryptjs (Node.js)...");
         
         // Create the correct hash for admin
-        const adminHash = await bcrypt.hash('admin123', 10);
+        const adminHash = await passwordService.hashPassword('admin123');
         await pool.query('UPDATE users SET password_hash = ? WHERE username = ?', [adminHash, 'admin']);
         
         // Create the correct hash for fielduser
-        const userHash = await bcrypt.hash('user123', 10);
+        const userHash = await passwordService.hashPassword('user123');
         await pool.query('UPDATE users SET password_hash = ? WHERE username = ?', [userHash, 'fielduser']);
         
         // Create a brand new clean test user
-        const testHash = await bcrypt.hash('test123', 10);
+        const testHash = await passwordService.hashPassword('test123');
         await pool.query('INSERT INTO users (username, password_hash, role, full_name) VALUES (?, ?, ?, ?)', 
             ['testuser', testHash, 'field_user', 'Test User']);
 

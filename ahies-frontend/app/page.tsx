@@ -1,10 +1,12 @@
 // app/page.tsx
+import { cookies } from 'next/headers';
 import { getPersons } from '@/lib/api';
 import AddPersonForm from '@/components/AddPersonForm';
-import PersonSearch from '@/components/PersonSearch'; // <--- Import our new component
+import PersonSearch from '@/components/PersonSearch';
 
 export default async function Home() {
-    const persons = await getPersons();
+    const cookieStore = await cookies();
+    const persons = await getPersons({ Cookie: cookieStore.toString() });
 
     return (
         <main className="min-h-screen p-8 bg-gray-50">

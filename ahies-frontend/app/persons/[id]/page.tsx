@@ -1,12 +1,16 @@
 // app/persons/[id]/page.tsx
+import { cookies } from 'next/headers';
 import { getPersonFullProfile } from '@/lib/api';
 
 export default async function PersonProfile({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
     const parsedId = parseInt(id);
 
-    // Fetch the FULL profile, not just the basic list
-    const person = await getPersonFullProfile(parsedId);
+    // Forward the session cookie so the protected backend route accepts us.
+    const cookieStore = await cookies();
+    const person = await getPersonFullProfile(parsedId, {
+        Cookie: cookieStore.toString(),
+    });
 
     if (!person) {
         return (

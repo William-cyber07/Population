@@ -55,24 +55,53 @@ Install dependencies:
 
 bash
 npm install
-Create a .env file in the root and add the following:
+Create a `.env` file in the root (copy `.env.example`) and fill in real values. Never commit `.env`.
 
-env
+```env
 DB_HOST=localhost
 DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=your_mysql_password
+DB_USER=population_app
+DB_PASSWORD=your_app_user_password
 DB_DATABASE=williamdb
 PORT=3000
+
+# Required, at least 32 characters each. Generate with:
+# node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+JWT_SECRET=your_long_random_jwt_secret
+JWT_EXPIRES_IN=24h
+PASSWORD_PEPPER=your_long_random_password_pepper
+
+# Optional transport hardening
+DB_SSL=false
+DB_SSL_REJECT_UNAUTHORIZED=true
+COOKIE_SECURE=false
+TWO_FACTOR_ISSUER=AHIES Population Survey
+```
+
 Set up the Database:
 
 Open MySQL Workbench.
 
-Create a new database named williamdb.
+Create a new database named `williamdb`.
 
-Run the SQL script (setup.sql or the provided schema) to create all tables and seed initial data.
+Run the schema (`db/Query.sql`) to create the tables and seed initial data.
 
-(Optional) Run node reset-passwords.js or node fix-final-password.js to ensure the admin and fielduser accounts are correctly configured with your local bcrypt settings.
+Apply the security migrations in order:
+
+```bash
+mysql -u root -p williamdb < db/migrations/001_p0_security.sql
+mysql -u root -p williamdb < db/migrations/002_p1_security.sql
+```
+
+Create a least-privilege application user (do not run the app as `root`):
+
+```sql
+CREATE USER 'population_app'@'localhost' IDENTIFIED BY 'your_app_user_password';
+GRANT SELECT, INSERT, UPDATE, DELETE ON williamdb.* TO 'population_app'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+(Optional) Run `node reset-passwords.js` to reset the seeded accounts. Passwords are hashed with the app pepper, so `PASSWORD_PEPPER` must already be set in `.env`.
 
 Start the backend:
 
@@ -89,10 +118,13 @@ Install dependencies:
 
 bash
 npm install
-Create a .env.local file in the root:
+Create a `.env.local` file in the root (copy `.env.example`):
 
-env
+```env
 NEXT_PUBLIC_API_URL=http://localhost:3000
+# Must match the backend JWT_SECRET exactly; proxy.ts verifies the session cookie with it.
+JWT_SECRET=your_long_random_jwt_secret
+```
 Start the frontend:
 
 bash

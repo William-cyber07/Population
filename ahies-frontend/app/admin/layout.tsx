@@ -39,6 +39,18 @@ export default function AdminLayout({
                   >
                 👥 View All Citizens
                 </Link>      
+                    <Link 
+                        href="/account/security" 
+                        className="block px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-md transition-colors"
+                    >
+                        🔐 Account Security
+                    </Link>
+                    <Link 
+                        href="/account/change-password" 
+                        className="block px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-md transition-colors"
+                    >
+                        🔑 Change Password
+                    </Link>
                 </nav>
             </div>
 
